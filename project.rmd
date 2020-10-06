@@ -1,0 +1,258 @@
+---
+title: "Project"
+author: "Thayumanav Jayadevan"
+date: "April 20, 2018"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+####Libraries
+```{r}
+library(dplyr)
+```
+
+####Reading data set
+```{r}
+airbnb_train_x = read.csv("airbnb_train_x.csv", stringsAsFactors = FALSE)
+airbnb_train_y = read.csv("airbnb_train_y.csv", stringsAsFactors = FALSE)
+airbnb_test_x = read.csv("airbnb_test_x.csv", stringsAsFactors = FALSE)
+```
+
+####Combining to one data frame
+```{r}
+airbnb_df = cbind(airbnb_train_x, airbnb_train_y[,-1])
+```
+
+####Changing datatypes
+```{r}
+#column = c("accommodates", "amenities", "availability_30", "availability_365",
+#           "availability_60", "availability_90", "bathrooms")
+# col_names = colnames(airbnb_df[c(3, 4:8, 10, 11, 15, 20, 22, 24, 28, 35, 43, 45, 
+#                                  47:49, 54, 60, 63, 68)])
+# airbnb_df[, "host_acceptance_rate"] = as.numeric(airbnb_df[,
+#                                                           "host_acceptance_rate"])
+```
+
+####NA values report
+```{r}
+#airbnb_summary = getTableProps(data.frame(airbnb_df$host_identity_verified))
+```
+
+```{r}
+#write.csv(airbnb_summary, file = "Airbnb_summary.csv")
+```
+
+####NA value treatment
+```{r}
+#Removing 19 instances where target variable is NA.
+temp = which(is.na(airbnb_df$high_booking_rate))
+airbnb_df = airbnb_df[-temp, ]
+```
+
+```{r}
+#Cleaning host_has_profile_pic
+airbnb_df[which(airbnb_df$host_has_profile_pic != "t" & 
+                airbnb_df$host_has_profile_pic != "f"),
+          "host_has_profile_pic"] = 't'
+airbnb_test_x[which(airbnb_test_x$host_has_profile_pic != "t" & 
+                airbnb_test_x$host_has_profile_pic != "f"),
+          "host_has_profile_pic"] = 't'
+```
+
+```{r}
+#Cleaning host_identity_verified
+airbnb_df[which(airbnb_df$host_identity_verified != "t" & 
+                airbnb_df$host_identity_verified != "f"),
+          "host_identity_verified"] = 't'
+airbnb_test_x[which(airbnb_test_x$host_identity_verified != "t" & 
+                airbnb_test_x$host_identity_verified != "f"),
+          "host_identity_verified"] = 't'
+```
+
+```{r}
+#Cleaning host_is_superhost
+airbnb_df[which(airbnb_df$host_is_superhost != "t" & 
+                airbnb_df$host_is_superhost != "f"),
+          "host_is_superhost"] = 'f'
+airbnb_test_x[which(airbnb_test_x$host_is_superhost != "t" & 
+                airbnb_test_x$host_is_superhost != "f"),
+          "host_is_superhost"] = 'f'
+```
+
+```{r}
+#Function for finding outliers
+quant_func = function(df){
+  x = quantile(df, probs = c(seq(0, .9, .1), seq(.9, .99, .01), seq(.99, 1, .001)), include.lowest = T, na.rm = T)
+}
+```
+
+```{r}
+#Outlier function
+outlier = function(df){
+ints <- which(sapply(df, FUN = function(x){ifelse(class(x) == "numeric" | class(x) == "integer", T, F)}))
+
+outlier = t(do.call(rbind, lapply(df, FUN = function(x)quant_func(x))))
+}
+```
+
+```{r}
+#write.csv(outlier, file = "Outlier.csv")
+```
+
+```{r}
+#Cleaning beds
+temp = as.data.frame(as.numeric(airbnb_df[which(airbnb_df$beds != ""),
+              "beds"]))
+colnames(temp) = "beds"
+ht = outlier(temp)
+temp[which(temp$beds > 13), ] = 13
+mean = as.integer(mean(temp[,]))
+```
+
+```{r}
+airbnb_df[which(airbnb_df$beds == ""),
+          "beds"] = mean
+airbnb_df$beds = as.numeric(airbnb_df$beds)
+airbnb_df[which(airbnb_df$beds > 13), "beds"] = 13
+
+airbnb_test_x$beds = as.numeric(airbnb_test_x$beds)
+airbnb_test_x[which(is.na(airbnb_test_x$beds)),
+          "beds"] = mean
+airbnb_test_x[which(airbnb_test_x$beds > 13), "beds"] = 13
+```
+```{r}
+#Cleaning bathrooms
+temp = as.data.frame(as.numeric(airbnb_df[which(airbnb_df$bathrooms != ""),
+              "bathrooms"]))
+colnames(temp) = "beds"
+ht = outlier(temp)
+temp[which(temp$beds > 7), ] = 7
+mean = as.integer(mean(temp[,]))
+```
+
+```{r}
+airbnb_df[which(airbnb_df$bathrooms == ""),
+          "bathrooms"] = mean
+airbnb_df$beds = as.numeric(airbnb_df$bathrooms)
+airbnb_df[which(airbnb_df$bathrooms > 7), "bathrooms"] = 7
+
+airbnb_test_x$beds = as.numeric(airbnb_test_x$beds)
+airbnb_test_x[which(is.na(airbnb_test_x$beds)),
+          "beds"] = mean
+airbnb_test_x[which(airbnb_test_x$beds > 13), "beds"] = 13
+```
+
+```{r}
+temp = as.data.frame(as.numeric(airbnb_df[which(airbnb_df$host_listings_count != ""),
+              "host_listings_count"]))
+colnames(temp) = "host_listings_count"
+temp[which(temp$host_listings_count > 49), ] = 49
+mean = as.integer(mean(temp[,]))
+```
+
+```{r}
+airbnb_df[which(airbnb_df$host_listings_count == ""),
+          "host_listings_count"] = mean
+airbnb_df$host_listings_count = as.numeric(airbnb_df$host_listings_count)
+airbnb_df[which(airbnb_df$host_listings_count > 49), "host_listings_count"] = 49
+
+airbnb_test_x$host_listings_count = as.numeric(airbnb_test_x$host_listings_count)
+airbnb_test_x[which(is.na(airbnb_test_x$host_listings_count)),
+          "host_listings_count"] = mean
+airbnb_test_x[which(airbnb_test_x$host_listings_count > 49), "host_listings_count"] = 49
+```
+
+```{r}
+airbnb_df$host_response_rate = as.numeric(substr(airbnb_df$host_response_rate,
+                                        1, nchar(airbnb_df$host_response_rate)-1))
+
+mean = mean(airbnb_df$host_response_rate, na.rm = TRUE)
+airbnb_df[is.na(airbnb_df$host_response_rate), "host_response_rate"] = mean
+
+airbnb_test_x$host_response_rate = 
+as.numeric(substr(airbnb_test_x$host_response_rate, 1, 
+                  nchar(airbnb_test_x$host_response_rate)-1))
+airbnb_test_x[is.na(airbnb_test_x$host_response_rate), "host_response_rate"] = mean
+```
+
+```{r}
+airbnb_df[which(airbnb_df$host_response_time == "" | 
+                airbnb_df$host_response_time == "f"),
+                "host_response_time"] = "within an hour"
+
+airbnb_test_x[which(airbnb_test_x$host_response_time == "" | 
+                airbnb_test_x$host_response_time == "f"),
+                "host_response_time"] = "within an hour"
+```
+
+```{r}
+temp = as.data.frame(as.numeric(
+  airbnb_df[which(airbnb_df$host_total_listings_count != ""),
+              "host_total_listings_count"]))
+ht = outlier(temp)
+temp[which(temp$host_total_listings_count > 49), ] = 49
+mean = as.integer(mean(temp[,]))
+```
+
+```{r}
+airbnb_df[which(airbnb_df$host_total_listings_count == ""),
+          "host_total_listings_count"] = mean
+
+airbnb_df$host_total_listings_count = as.numeric(airbnb_df$host_total_listings_count)
+
+airbnb_df[which(airbnb_df$host_total_listings_count > 49), "host_total_listings_count"] = 49
+
+airbnb_test_x$host_total_listings_count = as.numeric(airbnb_test_x$host_total_listings_count)
+airbnb_test_x[which(is.na(airbnb_test_x$host_total_listings_count)), "host_total_listings_count"] = mean
+airbnb_test_x[which(airbnb_test_x$host_total_listings_count > 49), "host_total_listings_count"] = 49
+```
+
+```{r}
+new_df = c(airbnb_df$host_verifications, airbnb_test_x$host_verifications)
+new_df2 = gsub("\\[||\\]||\\'", "", new_df)
+new_df3 = unique(trimws(tolower(unlist(lapply(new_df2, FUN = function(x){strsplit(x, split = ",")})))))
+
+
+new_df4 = data.frame(row.names = 1:length(new_df))
+invisible(lapply(new_df3, FUN = function(x){new_df4[[x]] <<- 1 * grepl(x, new_df, ignore.case = T)}))
+new_df4 = new_df4[, c(-24,-25)]
+```
+
+```{r}
+row_num = which(airbnb_df$host_since != "")
+a = airbnb_df[row_num, c("first_review","host_since")]
+a$first_review = as.Date(a$first_review)
+a$host_since = as.Date(a$host_since)
+average = mean(as.numeric(difftime(a$first_review ,a$host_since , units = c("days"))))
+average = as.integer(average)
+```
+
+```{r}
+airbnb_df$first_review = as.Date(airbnb_df$first_review)
+airbnb_df[which(airbnb_df$host_since == ""), "host_since"] = as.character(airbnb_df[which(airbnb_df$host_since == ""), "first_review"] - average)
+airbnb_df$host_since = as.Date(airbnb_df$host_since)
+```
+
+```{r}
+airbnb_test_x[which(airbnb_test_x$first_review == ""), "first_review"] = "2018-01-01"
+airbnb_test_x$first_review = as.Date(airbnb_test_x$first_review)
+airbnb_test_x[which(airbnb_test_x$host_since == ""), "host_since"] = as.character(airbnb_test_x[which(airbnb_test_x$host_since == ""), "first_review"] - average)
+airbnb_test_x$host_since = as.Date(airbnb_test_x$host_since)
+```
+
+```{r}
+write.csv(airbnb_df[, c("first_review", "host_has_profile_pic",
+                        "host_identity_verified",
+                        "host_is_superhost", "host_listings_count",
+                        "host_response_rate", "host_response_time",
+                        "host_since", "host_total_listings_count")],
+          file = "manav_cleaned_df_train.csv")
+```
+
+```{r}
+write.csv(new_df4, file = "host_verification.csv")
+```
+
